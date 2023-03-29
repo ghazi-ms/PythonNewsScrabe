@@ -105,7 +105,6 @@ def extract_static(url):
     for data in sections:
 
         second_section_contents = data.get_text()
-        second_section_contents
         second_section_contents = "\n".join(
             [line.strip() for line in second_section_contents.split("\n") if line.strip()])
         print("article :"+second_section_contents+"\n")
