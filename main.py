@@ -2,6 +2,8 @@ from bs4 import BeautifulSoup
 import requests
 import pandas as pd
 pd.set_option('display.max_colwidth', 500)
+api_key="AIzaSyAKY_4kNJ0xHBgVCE6k9ZgSX-njXno1BTQ"
+
 import feedparser
 from classs import news
 def main():
@@ -109,7 +111,29 @@ def extract_static(url):
         print("article :"+second_section_contents+"\n")
 
 
+def get_boundary_coordinates(place_name):
+    geocode_url = f"https://maps.googleapis.com/maps/api/geocode/json?address={place_name}&key={api_key}"
+    response = requests.get(geocode_url)
+    response_json = response.json()
+    results = response_json["results"]
+    if len(results) == 0:
+        return None
+    result = results[0]
+    geometry = result["geometry"]
+    bounds = geometry.get("bounds")
+    if bounds is None:
+        viewport = geometry["viewport"]
+        southwest = viewport["southwest"]
+        northeast = viewport["northeast"]
+        boundary_coordinates = [(southwest["lat"], southwest["lng"]), (northeast["lat"], northeast["lng"])]
+    else:
+        southwest = bounds["southwest"]
+        northeast = bounds["northeast"]
+        boundary_coordinates = [(southwest["lat"], southwest["lng"]), (northeast["lat"], northeast["lng"]), (northeast["lat"], southwest["lng"]), (southwest["lat"], northeast["lng"])]
+    return boundary_coordinates
+
+
 if __name__ == '__main__' :
-    # main()
-    extract_static(input("url:"))
+    main()
+    # extract_static(input("url:"))
 
