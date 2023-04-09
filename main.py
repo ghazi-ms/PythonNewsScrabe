@@ -1,38 +1,43 @@
+import time
+
 from bs4 import BeautifulSoup
 import requests
 import pandas as pd
-pd.set_option('display.max_colwidth', 500)
-api_key="AIzaSyAKY_4kNJ0xHBgVCE6k9ZgSX-njXno1BTQ"
-
 import feedparser
 from classs import news
+import json
+
+pd.set_option('display.max_colwidth', 500)
+api_key = "AIzaSyAKY_4kNJ0xHBgVCE6k9ZgSX-njXno1BTQ"
+API_URL = "https://api-inference.huggingface.co/models/CAMeL-Lab/bert-base-arabic-camelbert-msa-ner"
+headers = {"Authorization": "Bearer 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"}
+
+
 def main():
-
-
-    the_word=["إطلاق نار","إصابة","حوادث","زلازل","حريق","إرهاب","الجرائم","بحادثي","وفاتان"]
+    the_word = ["الأعاصير", "إطلاق نار", "إصابة", "حوادث", "زلازل", "حريق", "إرهاب", "الجرائم", "بحادثي", "وفاتان",
+                "حرب"]
     Feed = feedparser.parse('https://www.royanews.tv/rss')
     # print(Feed)
-    DataList=[]
-    ImportnatnList=[]
-    c=0
+    DataList = []
+    ImportnatnList = []
+
     for i in Feed.entries:
-        c=c+1
-        t=str(i).split("author")[3]
-        t=t.split("title")[2]
-        links=t.split("base")[1]
-        links=links.split("href")[1]
-        links=links.split("}")[0]
-        links=links.split("'")[2]
-        title= t.split("value")[1]
-        title=title.split("}")[0]
+        t = str(i).split("author")[3]
+        t = t.split("title")[2]
+        links = t.split("base")[1]
+        links = links.split("href")[1]
+        links = links.split("}")[0]
+        links = links.split("'")[2]
+        title = t.split("value")[1]
+        title = title.split("}")[0]
 
         # title=title.split(":")[1]
 
-        title=title.split("'")[2]
-
+        title = title.split("'")[2]
 
         DataList.append(news(title, links))
-    c=0
+
+    index = 0
     for i in Feed.entries:
 
         t = str(i).split("author")[3]
@@ -49,32 +54,33 @@ def main():
 
         title = title.split("'")[2]
 
-        if DataList[c].__eq__(news(title, links)):
+        if (DataList[index].title == title) and (DataList[index].link == links):
             print("already exist")
         else:
             DataList.append(news(title, links))
-        c = c + 1
+        index + 1
 
     for i in DataList:
-        print(i.GetTitle()+"\n")
-    print(DataList.__len__())
-    searchcount=0
+        print(i.GetTitle() + "\n")
+
+    searchcount = 0
     for i in DataList:
         for word in the_word:
             if i.GetTitle().__contains__(word):
-                important_link=i.GetLink()
+                important_link = i.GetLink()
                 # print("the title " + i.GetTitle() + " important link " + important_link)
                 ImportnatnList.append(news(i.GetTitle(), i.GetLink()))
-                searchcount=searchcount+1
+                searchcount = searchcount + 1
 
     if searchcount == 0:
         print("no news found")
     else:
         extract(ImportnatnList)
 
+
 def extract(ls):
     for i in ls:
-        print(i.GetTitle()+" \n")
+        print(i.GetTitle() + " \n")
         url = i.GetLink()
 
         response = requests.get(url)
@@ -89,9 +95,12 @@ def extract(ls):
             second_section_contents = second_section.get_text()
             second_section_contents = "\n".join(
                 [line.strip() for line in second_section_contents.split("\n") if line.strip()])
-            print(second_section_contents)
+            # print(second_section_contents)
+            i.Setdescription(second_section_contents)
         else:
             print("There are not enough sections on the webpage")
+    ExtractLocation(ls)
+
 
 def extract_static(url):
     response = requests.get(url)
@@ -103,11 +112,10 @@ def extract_static(url):
     # check if there are at least two sections
 
     for data in sections:
-
         second_section_contents = data.get_text()
         second_section_contents = "\n".join(
             [line.strip() for line in second_section_contents.split("\n") if line.strip()])
-        print("article :"+second_section_contents+"\n")
+        print("article :" + second_section_contents + "\n")
 
 
 def get_boundary_coordinates(place_name):
@@ -128,11 +136,41 @@ def get_boundary_coordinates(place_name):
     else:
         southwest = bounds["southwest"]
         northeast = bounds["northeast"]
-        boundary_coordinates = [(southwest["lat"], southwest["lng"]), (northeast["lat"], northeast["lng"]), (northeast["lat"], southwest["lng"]), (southwest["lat"], northeast["lng"])]
+        boundary_coordinates = [(southwest["lat"], southwest["lng"]), (northeast["lat"], northeast["lng"]),
+                                (northeast["lat"], southwest["lng"]), (southwest["lat"], northeast["lng"])]
     return boundary_coordinates
 
 
-if __name__ == '__main__' :
+def query(payload):
+    response = requests.post(API_URL, headers=headers, json=payload)
+    estimatedTime = 0
+    if 'estimated_time' in response:
+        estimatedTime = response['estimated_time']
+        print(estimatedTime)
+    if estimatedTime > 0:
+        time.sleep(estimatedTime)
+        response = requests.post(API_URL, headers=headers, json=payload)
+
+    return response.json()
+
+
+def ExtractLocation(ls):
+    theLocation=""
+    for i in ls:
+        if i.Getdescription() != '':
+            response = query(i.Getdescription())
+            for r in response:
+                if r['entity_group']=='LOC':
+                    theLocation=theLocation+r['word']+","
+        if theLocation != "":
+            i.SetLocation(theLocation)
+            i.SettimeStamp(time.strftime("%m/%d/%Y, %H:%M:%S", time.localtime()))
+        theLocation=""
+
+    for i in ls:
+        print(i)
+
+
+if __name__ == '__main__':
     main()
     # extract_static(input("url:"))
-
