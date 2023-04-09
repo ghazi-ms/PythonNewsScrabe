@@ -77,6 +77,14 @@ def main():
     else:
         extract(ImportnatnList)
 
+    for i in DataList:
+        location=i.Getlocation()
+        print(location)
+        if location!="":
+            location.split(',')
+            for l in location:
+                print(get_boundary_coordinates(l))
+
 
 def extract(ls):
     for i in ls:
