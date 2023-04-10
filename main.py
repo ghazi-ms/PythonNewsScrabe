@@ -15,31 +15,30 @@ headers = {"Authorization": "Bearer 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"}
 
 def main():
     the_word = ["الأعاصير", "إطلاق نار", "إصابة", "حوادث", "زلازل", "حريق", "إرهاب", "الجرائم", "بحادثي", "وفاتان",
-                "حرب"]
+                "حرب","إصابات","وفاة"]
     Feed = feedparser.parse('https://www.royanews.tv/rss')
     # print(Feed)
     DataList = []
     ImportnatnList = []
-
-    for i in Feed.entries:
-        t = str(i).split("author")[3]
-        t = t.split("title")[2]
-        links = t.split("base")[1]
-        links = links.split("href")[1]
-        links = links.split("}")[0]
-        links = links.split("'")[2]
-        title = t.split("value")[1]
-        title = title.split("}")[0]
-
-        # title=title.split(":")[1]
-
-        title = title.split("'")[2]
-
-        DataList.append(news(title, links))
+    #
+    # for i in Feed.entries:
+    #     t = str(i).split("author")[3]
+    #     t = t.split("title")[2]
+    #     links = t.split("base")[1]
+    #     links = links.split("href")[1]
+    #     links = links.split("}")[0]
+    #     links = links.split("'")[2]
+    #     title = t.split("value")[1]
+    #     title = title.split("}")[0]
+    #
+    #     # title=title.split(":")[1]
+    #
+    #     title = title.split("'")[2]
+    #
+    #     DataList.append(news(title, links))
 
     index = 0
     for i in Feed.entries:
-
         t = str(i).split("author")[3]
         t = t.split("title")[2]
         links = t.split("base")[1]
@@ -47,17 +46,10 @@ def main():
         links = links.split("}")[0]
         links = links.split("'")[2]
         title = t.split("value")[1]
-
         title = title.split("}")[0]
-
         # title=title.split(":")[1]
-
         title = title.split("'")[2]
-
-        if (DataList[index].title == title) and (DataList[index].link == links):
-            print("already exist")
-        else:
-            DataList.append(news(title, links))
+        DataList.append(news(title, links))
         index + 1
 
     for i in DataList:
@@ -77,12 +69,18 @@ def main():
     else:
         extract(ImportnatnList)
 
-    for i in DataList:
+    for i in ImportnatnList:
         location=i.Getlocation()
-        print(location)
         if location!="":
-            location.split(',')
+            location=location.split(',')
+            location=list(dict.fromkeys(location))
+            location.remove('')
+            print(str(location))
+
+            # print("after "+str(location))
+
             for l in location:
+                print("geting location for "+l)
                 print(get_boundary_coordinates(l))
 
 
@@ -156,6 +154,7 @@ def query(payload):
         estimatedTime = response['estimated_time']
         print(estimatedTime)
     if estimatedTime > 0:
+        print("sleeping "+estimatedTime)
         time.sleep(estimatedTime)
         response = requests.post(API_URL, headers=headers, json=payload)
 
@@ -167,17 +166,17 @@ def ExtractLocation(ls):
     for i in ls:
         if i.Getdescription() != '':
             response = query(i.Getdescription())
-            for r in response:
-                if r['entity_group']=='LOC':
-                    theLocation=theLocation+r['word']+","
+            for index in range(len(response)):
+                if response[index]['entity_group']=='LOC':
+                    theLocation=theLocation+response[index]['word']+","
         if theLocation != "":
             i.SetLocation(theLocation)
             i.SettimeStamp(time.strftime("%m/%d/%Y, %H:%M:%S", time.localtime()))
         theLocation=""
 
     for i in ls:
+        # print(i.getIntoList([965156.615561,6546465.15165,154.6516,1651.123]))
         print(i)
-
 
 if __name__ == '__main__':
     main()
