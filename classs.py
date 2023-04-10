@@ -13,6 +13,15 @@ class news:
     def __str__(self):
         return "the title is :" + self.title + ",\n the link is:" + self.link + "\n the Description\n" + self.description + "\n the loc:" + self.location + "\n the time:" + self.timeStamp
 
+    def getIntoList(self,points):
+        return {
+        "id": 'id'+self.timeStamp,
+        "title": self.title,
+        "description": self.description,
+        "points": points,
+        "timeStamp": self.timeStamp
+        }
+
     def GetTitle(self):
         return str(self.title)
 
