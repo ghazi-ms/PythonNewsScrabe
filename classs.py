@@ -1,3 +1,4 @@
+import random
 import time
 
 
@@ -9,19 +10,20 @@ class news:
         self.description = ""
         self.location = ""
         self.timeStamp = time.time()
-
+        self.points=[]
     def __str__(self):
         return "the title is :" + self.title + ",\n the link is:" + self.link + "\n the Description\n" + self.description + "\n the loc:" + self.location + "\n the time:" + self.timeStamp
 
-    def getIntoList(self,points):
+    def getIntoList(self):
         return {
-        "id": 'id'+self.timeStamp,
+        "id": 'id'+str(random.randrange(1,99999999)),
         "title": self.title,
         "description": self.description,
-        "points": points,
+        "Coordinates": self.points,
         "timeStamp": self.timeStamp
         }
-
+    def SetPoints(self,pointss):
+        self.points=pointss
     def GetTitle(self):
         return str(self.title)
 
