@@ -20,7 +20,7 @@ app = Flask(__name__)
 def index():
     def extract(important_list):
         for newsObjectData in important_list:
-            # print(i.GetTitle() + " \n")
+
             url = newsObjectData.GetLink()  # get the objects link (the news link)
 
             response = requests.get(url) # request the page
@@ -52,7 +52,7 @@ def index():
             second_section_contents = data.get_text()
             second_section_contents = "\n".join(
                 [line.strip() for line in second_section_contents.split("\n") if line.strip()])
-            # print("article :" + second_section_contents + "\n")
+
 
     def get_boundary_coordinates(place_name):
         geocode_url = f"https://maps.googleapis.com/maps/api/geocode/json?address={place_name}&key={api_key}"
@@ -81,9 +81,9 @@ def index():
         estimatedTime = 0
         if 'estimated_time' in response:
             estimatedTime = response['estimated_time']
-            # print(estimatedTime)
+
         if estimatedTime > 0:
-            # print("sleeping " + estimatedTime)
+
             time.sleep(estimatedTime)
             response = requests.post(API_URL, headers=headers, json=payload)
 
@@ -111,7 +111,7 @@ def index():
     the_word = ["الأعاصير", "إطلاق نار", "زلزال", "حوادث", "زلازل", "حريق", "إرهاب", "الجرائم", "بحادثي", "وفاتان",
                 "حرب", "إصابات", "بانفجار"]
     Feed = feedparser.parse('https://www.royanews.tv/rss')  # connect to royas rss
-    # print(Feed)
+
     DataList = []  # the list that will have the initial data of type news
     ImportnatnList = []
 
@@ -125,12 +125,9 @@ def index():
         links = links.split("'")[2]
         title = t.split("value")[1]
         title = title.split("}")[0]
-        # title=title.split(":")[1]
+
         title = title.split("'")[2]
         DataList.append(news(title, links))  # add the title and link to a new news object
-
-    # for i in DataList:
-    #     print(i.GetTitle() + "\n")
 
     for data in DataList:
         for word in the_word:
