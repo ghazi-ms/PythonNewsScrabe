@@ -9,17 +9,22 @@ class news:
         self.link = link
         self.description = ""
         self.location = ""
-        self.timeStamp = time.time()
+        self.timeStamp = time.strftime("%m/%d/%Y, %H:%M:%S", time.localtime())
         self.points=[]
     def __str__(self):
         return "the title is :" + self.title + ",\n the link is:" + self.link + "\n the Description\n" + self.description + "\n the loc:" + self.location + "\n the time:" + self.timeStamp
 
+    def __eq__(self, other):
+        if isinstance(other,self.__class__):
+            return self.title == other.title
+        return False
     def getIntoList(self):
         return {
         "id": 'id'+str(random.randrange(1,99999999)),
         "title": self.title,
         "description": self.description,
         "Coordinates": self.points,
+        "Locations":self.location,
         "timeStamp": self.timeStamp
         }
     def SetPoints(self,pointss):

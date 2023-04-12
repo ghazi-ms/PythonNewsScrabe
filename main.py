@@ -1,3 +1,5 @@
+import random
+
 from flask import Flask, jsonify
 import time
 from bs4 import BeautifulSoup
@@ -16,35 +18,26 @@ app = Flask(__name__)
 
 @app.route('/')
 def index():
-    # data = {
-    #     'name': 'John Doe',
-    #     'age': 30,
-    #     'city': 'New York'
-    # }
-    # return jsonify(data)
+    def extract(important_list):
+        for newsObjectData in important_list:
+            # print(i.GetTitle() + " \n")
+            url = newsObjectData.GetLink()  # get the objects link (the news link)
 
-    def extract(ls):
-        for i in ls:
-            print(i.GetTitle() + " \n")
-            url = i.GetLink()
-
-            response = requests.get(url)
-            soup = BeautifulSoup(response.content, "html.parser")
+            response = requests.get(url) # request the page
+            soup = BeautifulSoup(response.content, "html.parser") # open the page
 
             # find all sections in the HTML
             sections = soup.find_all("section")
 
-            # check if there are at least two sections
+            # check if there are at least four sections
             if len(sections) >= 4:
-                second_section = sections[4]
-                second_section_contents = second_section.get_text()
-                second_section_contents = "\n".join(
-                    [line.strip() for line in second_section_contents.split("\n") if line.strip()])
-                # print(second_section_contents)
-                i.Setdescription(second_section_contents)
-            else:
-                print("There are not enough sections on the webpage")
-        ExtractLocation(ls)
+                target_section = sections[4]
+                target_section_contents = target_section.get_text()
+                target_section_contents = "\n".join(
+                    [line.strip() for line in target_section_contents.split("\n") if line.strip()])
+                newsObjectData.Setdescription(target_section_contents) # sets the description of the news object
+
+            ExtractLocation(important_list) # calls the extract location to extract the location from the description
 
     def extract_static(url):
         response = requests.get(url)
@@ -59,7 +52,7 @@ def index():
             second_section_contents = data.get_text()
             second_section_contents = "\n".join(
                 [line.strip() for line in second_section_contents.split("\n") if line.strip()])
-            print("article :" + second_section_contents + "\n")
+            # print("article :" + second_section_contents + "\n")
 
     def get_boundary_coordinates(place_name):
         geocode_url = f"https://maps.googleapis.com/maps/api/geocode/json?address={place_name}&key={api_key}"
@@ -83,45 +76,47 @@ def index():
                                     (northeast["lat"], southwest["lng"]), (southwest["lat"], northeast["lng"])]
         return boundary_coordinates
 
-    def query(payload):
+    def GetDataAndDescription(payload):
         response = requests.post(API_URL, headers=headers, json=payload)
         estimatedTime = 0
         if 'estimated_time' in response:
             estimatedTime = response['estimated_time']
-            print(estimatedTime)
+            # print(estimatedTime)
         if estimatedTime > 0:
-            print("sleeping " + estimatedTime)
+            # print("sleeping " + estimatedTime)
             time.sleep(estimatedTime)
             response = requests.post(API_URL, headers=headers, json=payload)
 
         return response.json()
 
-    def ExtractLocation(ls):
+    def ExtractLocation(important_list):
         theLocation = ""
-        for i in ls:
-            if i.Getdescription() != '':
-                response = query(i.Getdescription())
-                for index in range(len(response)):
-                    if response[index]['entity_group'] == 'LOC':
-                        theLocation = theLocation + response[index]['word'] + ","
+
+        for newsData in important_list:
+            if newsData.Getdescription() != '': # check if there is a description
+                response = GetDataAndDescription(newsData.Getdescription()) # send the description to the function
+
+                for item in response:
+                    if isinstance(item, dict) and 'entity_group' in item:
+                        if item['entity_group'] == 'LOC':
+                            if item['entity_group'] == 'LOC':
+                                theLocation = theLocation + item['word'] + "," # append the extracted locations
+
             if theLocation != "":
-                i.SetLocation(theLocation)
-                i.SettimeStamp(time.strftime("%m/%d/%Y, %H:%M:%S", time.localtime()))
+                newsData.SetLocation(theLocation) # add the list of locations
+                newsData.SettimeStamp(time.strftime("%m/%d/%Y, %H:%M:%S", time.localtime())) # give the news a time stamp
             theLocation = ""
-        #
-        # for i in ls:
-        #     i.getIntoList([965156.615561,6546465.15165,154.6516,1651.123])
-        #     print(i)
 
-
+    # start of the code
     the_word = ["الأعاصير", "إطلاق نار", "زلزال", "حوادث", "زلازل", "حريق", "إرهاب", "الجرائم", "بحادثي", "وفاتان",
-                "حرب", "إصابات", "وفاة" ]
-    Feed = feedparser.parse('https://www.royanews.tv/rss')
+                "حرب", "إصابات", "بانفجار"]
+    Feed = feedparser.parse('https://www.royanews.tv/rss')  # connect to royas rss
     # print(Feed)
-    DataList = []
+    DataList = []  # the list that will have the initial data of type news
     ImportnatnList = []
 
     for i in Feed.entries:
+        # take every element in the list and cut the title and link
         t = str(i).split("author")[3]
         t = t.split("title")[2]
         links = t.split("base")[1]
@@ -132,42 +127,34 @@ def index():
         title = title.split("}")[0]
         # title=title.split(":")[1]
         title = title.split("'")[2]
-        DataList.append(news(title, links))
+        DataList.append(news(title, links))  # add the title and link to a new news object
 
+    # for i in DataList:
+    #     print(i.GetTitle() + "\n")
 
-    for i in DataList:
-        print(i.GetTitle() + "\n")
-
-    searchcount = 0
-    for i in DataList:
+    for data in DataList:
         for word in the_word:
-            if i.GetTitle().__contains__(word):
-                important_link = i.GetLink()
-                # print("the title " + i.GetTitle() + " important link " + important_link)
-                ImportnatnList.append(news(i.GetTitle(), i.GetLink()))
-                searchcount = searchcount + 1
+            if data.GetTitle().__contains__(word):  # if the data retrived from the list of the object news titles has any word of the keywords
+                tmp_data=news(data.title,data.link)
+                if tmp_data not in ImportnatnList:
+                    ImportnatnList.append(news(data.title,data.link))  # add the object to the filterd list
 
-    if searchcount == 0:
-        print("no news found")
-    else:
+    if ImportnatnList:  # if there is a filtered list then call the extractor, and it's not empty
         extract(ImportnatnList)
     theJsonlist = {}
-    for i in ImportnatnList:
-        location = i.Getlocation()
-        if location != "":
-            location = location.split(',')
-            location = list(dict.fromkeys(location))
-            location.remove('')
-            # print(str(location))
 
-            # print("after "+str(location))
+    for newsObject in ImportnatnList:
+        locations = newsObject.Getlocation() # gets the location of the news
+        if locations != "":
+            locations = locations.split(',') # the data is like amman,zaraqa,psut, so it splits the locations
+            locations = list(dict.fromkeys(locations))
+            locations.remove('')
+            for location in locations:
+                newsObject.SetPoints(get_boundary_coordinates(location)) # extract the coordinates of the location word
+        theJsonlist[str(random.randrange(1, 55))] = newsObject.getIntoList() # turn the objects of news into a json list
 
-            for l in location:
-                print("geting location for " + l)
-                i.SetPoints(get_boundary_coordinates(l))
-        theJsonlist[time.time()] = i.getIntoList()
     return jsonify(theJsonlist)
 
 
 if __name__ == '__main__':
-    app.run(debug=True,port=5226)
+    app.run(debug=True)
